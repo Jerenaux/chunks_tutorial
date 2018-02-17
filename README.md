@@ -1,5 +1,5 @@
 # chunks_tutorial
-Small demo showing how to load and manage tilemap chunks on the fly with Phaser 3.
+Small demo showing how to load and manage tilemap chunks on the fly with Phaser 3. You can see it in action in the [online demo](https://chunks-demo.herokuapp.com/index.html). (Note that the loading of the chunks should be almost invisible, so if the demo works well there won't be that much to see!).
 
 The tutorial corresponding to this demo has yet to be written.
 

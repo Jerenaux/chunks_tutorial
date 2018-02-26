@@ -1,7 +1,7 @@
 # chunks_tutorial
 Small demo showing how to load and manage tilemap chunks on the fly as the player moves, with Phaser 3. You can see it in action in the [online demo](https://chunks-demo.herokuapp.com/index.html). Note that the loading of the chunks should be almost invisible, so if the demo works well there won't be that much to see! You can have a look at [this gif](http://www.dynetisgames.com/wp-content/uploads/2017/07/test2.gif.pagespeed.ce.ThPirHNwQq.gif) to see it in action with smaller chunks where the effect becomes visible.
 
-The tutorial corresponding to this demo has yet to be written. 
+The tutorial corresponding to this demo [is available here](http://www.dynetisgames.com/2018/02/24/manage-big-maps-phaser-3/).
 
 ## Running the demo
 

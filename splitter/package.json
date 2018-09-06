@@ -4,6 +4,7 @@
   "main": "splitmap.js",
   "author": "Jerome Renaux",
   "dependencies": {
-    "clone": "^2.1.2"
+    "clone": "^2.1.2",
+    "optimist": "^0.6.1"
   }
 }

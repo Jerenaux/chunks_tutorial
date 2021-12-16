@@ -97,7 +97,7 @@ Game.displayChunk = function(key){
     for(var i = 0; i < map.layers.length; i++) {
         // You can load a layer from the map using the layer name from Tiled, or by using the layer
         // index
-        var layer = map.createStaticLayer(i, tiles, chunkX*32, chunkY*32);
+        var layer = map.createLayer(i, tiles, chunkX*32, chunkY*32);
         // Trick to automatically give different depths to each layer while avoid having a layer at depth 1 (because depth 1 is for our player character)
         layer.setDepth(2*i);
     }
@@ -108,6 +108,7 @@ Game.displayChunk = function(key){
 
 Game.removeChunk = function(chunkID){
     Game.maps[chunkID].destroy();
+    Game.scene.cache.tilemap.remove(`chunk${chunkID}`);
     var idx = Game.displayedChunks.indexOf(chunkID);
     if(idx > -1) Game.displayedChunks.splice(idx,1);
 };

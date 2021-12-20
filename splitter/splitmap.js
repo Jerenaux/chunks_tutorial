@@ -1,81 +1,104 @@
 /**
  * Created by Jerome Renaux (jerome.renaux@gmail.com) on 07-02-18.
+ * Modified by Jakub Kasprzyk (github.com/neu5)
  */
 
-var fs = require('fs');
-var path = require('path');
-var clone = require('clone');
+const fs = require('fs');
+const path = require('path');
+const rimraf = require('rimraf')
 
-function splitMap(fileName,out,chunkWidth,chunkHeight){
-    var defaultChunkWidth = 20;
-    var defaultChunkHeight = 20;
+const splitMap = (fileName, out = "chunks", chunkWidth = 20, chunkHeight = 20, verbose = false) => {
+    if (!fileName) {
+        console.log(`ERROR : No file name specified!
+-i = path to JSON file of the map to split, relative to assets/map (with or without out json extension)
+-o = (optional) name of directory where chunks have to be generated (default assets/map/chunks)
+-w = (optional) width of the chunks, in tiles (default ${chunkWidth})
+-h = (optional) height of the chunks, in tiles (default ${chunkHeight})
+-v = (optional) verbose, print out the progress of creating the chunks`);
 
-    if(!fileName){
-        console.log('ERROR : No file name specified!');
-        console.log('-i = path to JSON file of the map to split, relative to assets/map (with or without out json extension)');
-        console.log('-o = (optional) name of directory where chunks have to be generated (default assets/map/chunks)');
-        console.log('-w = (optional) width of the chunks, in tiles (default '+defaultChunkWidth+')');
-        console.log('-h = (optional) height of the chunks, in tiles (default '+defaultChunkHeight+')');
         return;
     }
-    if(fileName.substr(-5) == ".json") fileName = fileName.slice(0,-5);
 
-    if(!out) out = 'chunks';
-    var mapsPath = path.join('..','assets','map');
-    var outputDirectory = path.join(__dirname,mapsPath,out);
-    if (!fs.existsSync(outputDirectory)) fs.mkdirSync(outputDirectory);
+    if (fileName.substr(-5) == ".json") {
+        fileName = fileName.slice(0, -5);
+    }
 
-    if(!chunkWidth) chunkWidth = defaultChunkWidth;
-    if(!chunkHeight) chunkHeight = defaultChunkHeight;
+    const mapsPath = path.join('..', 'assets', 'map');
+    const outputDirectory = path.join(__dirname, mapsPath, out);
+
+    rimraf.sync(outputDirectory);
+    console.log(`Output directory ${out} cleared`);
+
+    if (!fs.existsSync(outputDirectory)) {
+        fs.mkdirSync(outputDirectory);
+    }
 
     fs.readFile(path.join(__dirname,mapsPath,fileName+".json"), 'utf8', function (err, data) {
-        if (err) throw err;
-        var map = JSON.parse(data);
-        var mapWidth = map.width;
-        var mapHeight = map.height;
-        var nbChunksHorizontal = Math.ceil(mapWidth/chunkWidth);
-        var nbChunksVertical = Math.ceil(mapHeight/chunkHeight);
-        var nbChunks = nbChunksHorizontal*nbChunksVertical;
-        console.log('Splitting into '+nbChunks+' chunks ('+nbChunksHorizontal+' x '+nbChunksVertical+') of size ('+chunkWidth+' x '+chunkHeight+')');
-        console.log('Writing to '+outputDirectory);
+        if (err) {
+            throw err
+        };
+
+        const map = JSON.parse(data);
+        const mapWidth = map.width;
+        const mapHeight = map.height;
+        const nbChunksHorizontal = Math.ceil(mapWidth/chunkWidth);
+        const nbChunksVertical = Math.ceil(mapHeight/chunkHeight);
+        const nbChunks = nbChunksHorizontal*nbChunksVertical;
+        console.log(`Splitting into ${nbChunks} chunks (${nbChunksHorizontal} x ${nbChunksVertical}) of size (${chunkWidth} x ${chunkHeight})`);
+        console.log(`Writing to ${outputDirectory}`);
 
         // Creates a master file that contains information needed to properly manage the chunks
-        var master = {
+        const master = {
             tilesets: map.tilesets, // Up to you to decide if having the tilesets data in the master file is useful or not, adapt accordingly (in this case it's not)
             chunkWidth: chunkWidth,
             chunkHeight: chunkHeight,
             nbChunksHorizontal: nbChunksHorizontal,
             nbChunksVertical: nbChunksVertical,
-            nbLayers: map.layers.length
+            nbLayers: map.layers.length,
+            mapHeight: map.height,
+            mapWidth: map.width,
+            tileWidth: map.tilewidth,
+            tileHeight: map.tileheight,
         };
-        fs.writeFile(path.join(outputDirectory,'master.json'),JSON.stringify(master),function(err){
-            if(err) throw err;
+
+        fs.writeFile(path.join(outputDirectory, 'master.json'), JSON.stringify(master), (err) => {
+            if (err) {
+                throw err
+            };
+
             console.log('Master file written');
         });
 
-        var counter = 0;
-        for(var i = 0; i < nbChunks; i++){
-            var chunk = clone(map);
+        let counter = 0;
+
+        for(let i = 0; i < nbChunks; i++){
+            const chunk = {
+                ...map,
+                layers: map.layers.map((layer) => ({
+                  ...layer,
+                  data: [...layer.data],
+                })),
+            };
             // Compute the coordinates of the top-left corner of the chunk in the initial map
-            var x = (i%nbChunksHorizontal)*chunkWidth;
-            var y = Math.floor(i/nbChunksHorizontal)*chunkHeight;
+            const x = (i%nbChunksHorizontal) * chunkWidth;
+            const y = Math.floor(i/nbChunksHorizontal)*chunkHeight;
             chunk.width = Math.min(chunkWidth,mapWidth-x);
             chunk.height = Math.min(chunkHeight,mapHeight-y);
             chunk.id = i;
             // Compute the index of the tiles array of the initial map that corresponds to the top-left tile of the chunk
-            var liststart = mapWidth*y + x;
+            const liststart = mapWidth*y + x;
 
-            for(var j= 0; j < chunk.layers.length; j++) { // Scan all layers one by one
-                var layer = chunk.layers[j];
+            for(let j= 0; j < chunk.layers.length; j++) { // Scan all layers one by one
+                const layer = chunk.layers[j];
                 layer.width = chunk.width;
                 layer.height = chunk.height;
                 if (layer.type === "tilelayer") {
-                    var tmpdata = [];
+                    let tmpdata = [];
                     // In the initial tiles array, fetch the "slices" of tiles that belong to the chunk of interest
-                    for(var yi = 0; yi < layer.height; yi++){
-                        var begin = liststart + yi*mapWidth;
-                        var end = begin+layer.width;
-                        var line = layer.data.slice(begin,end);
+                    for(let yi = 0; yi < layer.height; yi++){
+                        const begin = liststart + yi*mapWidth;
+                        const end = begin+layer.width;
+                        const line = layer.data.slice(begin,end);
                         tmpdata = tmpdata.concat(line);
                     }
                     layer.data = tmpdata;
@@ -83,19 +106,30 @@ function splitMap(fileName,out,chunkWidth,chunkHeight){
             }
 
             // Update tileset paths
-            for(var k = 0; k < chunk.tilesets.length; k++){
-                var tileset = chunk.tilesets[k];
+            for(let k = 0; k < chunk.tilesets.length; k++){
+                const tileset = chunk.tilesets[k];
                 tileset.image = path.join('..',tileset.image);
             }
 
+            if (verbose)
+            console.log(
+                `writing chunk ${i} from ${nbChunks} created (${(i / nbChunks) * 100}%)`
+            );
+
             fs.writeFile(path.join(outputDirectory,'chunk'+i+'.json'),JSON.stringify(chunk),function(err){
-                if(err) throw err;
+                if (err) {
+                    throw err;
+                }
+
                 counter++;
-                if(counter == nbChunks) console.log('All chunks created');
+
+                if (counter === nbChunks) {
+                    console.log('All chunks created');
+                }
             });
         }
     });
 }
 
 var myArgs = require('optimist').argv;
-splitMap(myArgs.i,myArgs.o,myArgs.w,myArgs.h);
+splitMap(myArgs.i, myArgs.o, myArgs.w, myArgs.h, myArgs.v);

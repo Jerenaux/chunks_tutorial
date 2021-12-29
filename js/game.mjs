@@ -9,6 +9,86 @@
 const findDiffArrayElements = (firstArray, secondArray) =>
   firstArray.filter((i) => secondArray.indexOf(i) < 0);
 
+const IDToXY = ({ ID, nbChunksHorizontal, nbChunksVertical }) => ({
+  x: (ID % nbChunksHorizontal) + 1,
+  y: Math.floor(ID / nbChunksVertical) + 1,
+});
+
+const getObjectTiles = ({ positionTile, size = { x: 1, y: 1 } }) => {
+  if (size.x <= 0 || size.y <= 0) {
+    return [];
+  }
+
+  const tileX = positionTile.x;
+  const tileY = positionTile.y;
+
+  const objectTiles = [];
+
+  for (let x = tileX; x < tileX + size.x; x += 1) {
+    for (let y = tileY; y < tileY + size.y; y += 1) {
+      objectTiles.push({ tileX: x, tileY: y });
+    }
+  }
+
+  return objectTiles;
+};
+
+const getSurroundingTiles = ({
+  positionTile,
+  size = { x: 1, y: 1 },
+  sizeToIncrease = { x: 1, y: 1 },
+  startX = 0,
+  startY = 0,
+  endX = 4,
+  endY = 4,
+  includeMainObject = false,
+}) => {
+  const tileX = positionTile.x;
+  const tileY = positionTile.y;
+
+  if (tileX < 1 || tileY < 1) {
+    return [];
+  }
+
+  let objectTiles = [];
+
+  if (!includeMainObject) {
+    objectTiles = getObjectTiles({ positionTile, size });
+
+    if (objectTiles.length === 0) {
+      return [];
+    }
+  }
+
+  const tiles = [];
+
+  for (
+    let x = tileX - sizeToIncrease.x;
+    x < tileX + size.x + sizeToIncrease.x;
+    x += 1
+  ) {
+    for (
+      let y = tileY - sizeToIncrease.y;
+      y < tileY + size.y + sizeToIncrease.y;
+      y += 1
+    ) {
+      if (
+        x > startX &&
+        x <= endX &&
+        y > startY &&
+        y <= endY &&
+        !objectTiles.some(
+          (objectTile) => x === objectTile.tileX && y === objectTile.tileY
+        )
+      ) {
+        tiles.push({ tileX: x, tileY: y });
+      }
+    }
+  }
+
+  return tiles;
+};
+
 class Game extends Phaser.Scene {
   constructor() {
     super("Game");
@@ -53,7 +133,24 @@ class Game extends Phaser.Scene {
 
   updateEnvironment() {
     const chunkID = this.computeChunkID(this.player.x, this.player.y);
-    const chunks = this.listAdjacentChunks(chunkID); // List the id's of the chunks surrounding the one we are in
+    // const chunks = this.listAdjacentChunks(chunkID); // List the id's of the chunks surrounding the one we are in
+
+    const chunks = getSurroundingTiles({
+      positionTile: IDToXY({
+        ID: chunkID,
+        nbChunksHorizontal: this.nbChunksHorizontal,
+        nbChunksVertical: this.nbChunksVertical,
+      }),
+      includeMainObject: true,
+      endX: this.nbChunksHorizontal,
+      endY: this.nbChunksVertical,
+    }).map(({ tileX, tileY }) => {
+      const x = tileX - 1;
+      const y = tileY - 1;
+
+      return x + y * this.nbChunksHorizontal;
+    });
+
     const newChunks = findDiffArrayElements(chunks, this.displayedChunks); // Lists the surrounding chunks that are not displayed yet (and have to be)
     const oldChunks = findDiffArrayElements(this.displayedChunks, chunks); // Lists the surrounding chunks that are still displayed (and shouldn't anymore)
 
@@ -167,8 +264,6 @@ class Game extends Phaser.Scene {
     this.load.image("phaserguy", "assets/phaserguy.png");
     // This master file contains information about your chunks; see splitter/splitmap.js how it is created
     this.load.json("master", "assets/map/chunks/master.json");
-
-    console.log(this);
   }
 
   create() {

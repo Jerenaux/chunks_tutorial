@@ -9,9 +9,9 @@
 const findDiffArrayElements = (firstArray, secondArray) =>
   firstArray.filter((i) => secondArray.indexOf(i) < 0);
 
-const IDToXY = ({ ID, nbChunksHorizontal, nbChunksVertical }) => ({
-  x: (ID % nbChunksHorizontal) + 1,
-  y: Math.floor(ID / nbChunksVertical) + 1,
+const IDToXY = ({ ID, nbChunksX }) => ({
+  x: ID % nbChunksX,
+  y: Math.floor(ID / nbChunksX),
 });
 
 const getObjectTiles = ({ positionTile, size = { x: 1, y: 1 } }) => {
@@ -19,14 +19,13 @@ const getObjectTiles = ({ positionTile, size = { x: 1, y: 1 } }) => {
     return [];
   }
 
-  const tileX = positionTile.x;
-  const tileY = positionTile.y;
+  const { x, y } = positionTile;
 
   const objectTiles = [];
 
-  for (let x = tileX; x < tileX + size.x; x += 1) {
-    for (let y = tileY; y < tileY + size.y; y += 1) {
-      objectTiles.push({ tileX: x, tileY: y });
+  for (let xi = x; xi < x + size.x; xi += 1) {
+    for (let yj = y; yj < y + size.y; yj += 1) {
+      objectTiles.push({ x: xi, y: yj });
     }
   }
 
@@ -43,10 +42,9 @@ const getSurroundingTiles = ({
   endY = 4,
   includeMainObject = false,
 }) => {
-  const tileX = positionTile.x;
-  const tileY = positionTile.y;
+  const { x, y } = positionTile;
 
-  if (tileX < 1 || tileY < 1) {
+  if (x < 0 || y < 0) {
     return [];
   }
 
@@ -63,25 +61,25 @@ const getSurroundingTiles = ({
   const tiles = [];
 
   for (
-    let x = tileX - sizeToIncrease.x;
-    x < tileX + size.x + sizeToIncrease.x;
-    x += 1
+    let xi = x - sizeToIncrease.x;
+    xi < x + size.x + sizeToIncrease.x;
+    xi += 1
   ) {
     for (
-      let y = tileY - sizeToIncrease.y;
-      y < tileY + size.y + sizeToIncrease.y;
-      y += 1
+      let yj = y - sizeToIncrease.y;
+      yj < y + size.y + sizeToIncrease.y;
+      yj += 1
     ) {
       if (
-        x > startX &&
-        x <= endX &&
-        y > startY &&
-        y <= endY &&
+        xi >= startX &&
+        xi <= endX &&
+        yj >= startY &&
+        yj <= endY &&
         !objectTiles.some(
-          (objectTile) => x === objectTile.tileX && y === objectTile.tileY
+          (objectTile) => xi === objectTile.x && yj === objectTile.y
         )
       ) {
-        tiles.push({ tileX: x, tileY: y });
+        tiles.push({ x: xi, y: yj });
       }
     }
   }
@@ -128,7 +126,7 @@ class Game extends Phaser.Scene {
 
     const chunkX = Math.floor(tile.x / this.chunkWidth);
     const chunkY = Math.floor(tile.y / this.chunkHeight);
-    return chunkY * this.nbChunksHorizontal + chunkX;
+    return chunkY * this.nbChunksX + chunkX;
   }
 
   updateEnvironment() {
@@ -138,18 +136,13 @@ class Game extends Phaser.Scene {
     const chunks = getSurroundingTiles({
       positionTile: IDToXY({
         ID: chunkID,
-        nbChunksHorizontal: this.nbChunksHorizontal,
-        nbChunksVertical: this.nbChunksVertical,
+        nbChunksX: this.nbChunksX,
+        nbChunksY: this.nbChunksY,
       }),
       includeMainObject: true,
-      endX: this.nbChunksHorizontal,
-      endY: this.nbChunksVertical,
-    }).map(({ tileX, tileY }) => {
-      const x = tileX - 1;
-      const y = tileY - 1;
-
-      return x + y * this.nbChunksHorizontal;
-    });
+      endX: this.nbChunksX - 1,
+      endY: this.nbChunksY - 1,
+    }).map(({ x, y }) => x + y * this.nbChunksX);
 
     const newChunks = findDiffArrayElements(chunks, this.displayedChunks); // Lists the surrounding chunks that are not displayed yet (and have to be)
     const oldChunks = findDiffArrayElements(this.displayedChunks, chunks); // Lists the surrounding chunks that are still displayed (and shouldn't anymore)
@@ -181,9 +174,9 @@ class Game extends Phaser.Scene {
 
     // We need to compute the position of the chunk in the world
     const chunkID = parseInt(key.match(/\d+/)[0], 10); // Extracts the chunk number from file name
-    const chunkRow = Math.floor(chunkID / this.nbChunksHorizontal);
-    const chunkCol = chunkID % this.nbChunksHorizontal;
-    const isCenterChunk = (chunkID - chunkRow) % this.nbChunksHorizontal;
+    const chunkRow = Math.floor(chunkID / this.nbChunksX);
+    const chunkCol = chunkID % this.nbChunksX;
+    const isCenterChunk = (chunkID - chunkRow) % this.nbChunksX;
 
     let offset;
 
@@ -192,20 +185,18 @@ class Game extends Phaser.Scene {
         x: 0,
         y: chunkRow * this.chunkHalfWidth,
       };
-    } else if (chunkID < this.nbChunksHorizontal * chunkRow + chunkRow) {
+    } else if (chunkID < this.nbChunksX * chunkRow + chunkRow) {
       offset = {
         x:
           -(chunkRow * this.chunkHalfWidth) +
-          (chunkID % this.nbChunksHorizontal) * this.chunkHalfWidth,
+          (chunkID % this.nbChunksX) * this.chunkHalfWidth,
         y:
           chunkRow * this.chunkHalfHeight +
-          (chunkID % this.nbChunksHorizontal) * this.chunkHalfHeight,
+          (chunkID % this.nbChunksX) * this.chunkHalfHeight,
       };
     } else {
       offset = {
-        x:
-          ((chunkCol - chunkRow) % this.nbChunksHorizontal) *
-          this.chunkHalfWidth,
+        x: ((chunkCol - chunkRow) % this.nbChunksX) * this.chunkHalfWidth,
         y: (chunkRow + chunkCol) * this.chunkHalfHeight,
       };
     }
@@ -232,24 +223,19 @@ class Game extends Phaser.Scene {
   // account. If you find a smarter way to do it, I'm interested!
   listAdjacentChunks(chunkID) {
     const chunks = [];
-    const isAtTop = chunkID < this.nbChunksHorizontal;
-    const isAtBottom = chunkID > this.lastChunkID - this.nbChunksHorizontal;
-    const isAtLeft = chunkID % this.nbChunksHorizontal === 0;
-    const isAtRight =
-      chunkID % this.nbChunksHorizontal === this.nbChunksHorizontal - 1;
+    const isAtTop = chunkID < this.nbChunksX;
+    const isAtBottom = chunkID > this.lastChunkID - this.nbChunksX;
+    const isAtLeft = chunkID % this.nbChunksX === 0;
+    const isAtRight = chunkID % this.nbChunksX === this.nbChunksX - 1;
     chunks.push(chunkID);
-    if (!isAtTop) chunks.push(chunkID - this.nbChunksHorizontal);
-    if (!isAtBottom) chunks.push(chunkID + this.nbChunksHorizontal);
+    if (!isAtTop) chunks.push(chunkID - this.nbChunksX);
+    if (!isAtBottom) chunks.push(chunkID + this.nbChunksX);
     if (!isAtLeft) chunks.push(chunkID - 1);
     if (!isAtRight) chunks.push(chunkID + 1);
-    if (!isAtTop && !isAtLeft)
-      chunks.push(chunkID - 1 - this.nbChunksHorizontal);
-    if (!isAtTop && !isAtRight)
-      chunks.push(chunkID + 1 - this.nbChunksHorizontal);
-    if (!isAtBottom && !isAtLeft)
-      chunks.push(chunkID - 1 + this.nbChunksHorizontal);
-    if (!isAtBottom && !isAtRight)
-      chunks.push(chunkID + 1 + this.nbChunksHorizontal);
+    if (!isAtTop && !isAtLeft) chunks.push(chunkID - 1 - this.nbChunksX);
+    if (!isAtTop && !isAtRight) chunks.push(chunkID + 1 - this.nbChunksX);
+    if (!isAtBottom && !isAtLeft) chunks.push(chunkID - 1 + this.nbChunksX);
+    if (!isAtBottom && !isAtRight) chunks.push(chunkID + 1 + this.nbChunksX);
 
     return chunks;
   }
@@ -276,8 +262,8 @@ class Game extends Phaser.Scene {
     const {
       chunkHeight,
       chunkWidth,
-      nbChunksHorizontal,
-      nbChunksVertical,
+      nbChunksX,
+      nbChunksY,
       tileWidth,
       tileHeight,
       mapHeight,
@@ -286,14 +272,14 @@ class Game extends Phaser.Scene {
 
     this.chunkWidth = chunkWidth;
     this.chunkHeight = chunkHeight;
-    this.nbChunksHorizontal = nbChunksHorizontal;
-    this.nbChunksVertical = nbChunksVertical;
+    this.nbChunksX = nbChunksX;
+    this.nbChunksY = nbChunksY;
     this.mapHeight = mapHeight;
     this.mapWidth = mapWidth;
     this.tileWidth = tileWidth;
     this.tileHeight = tileHeight;
 
-    this.lastChunkID = this.nbChunksHorizontal * this.nbChunksVertical - 1;
+    this.lastChunkID = this.nbChunksX * this.nbChunksY - 1;
     this.chunkHalfWidth = (this.chunkWidth / 2) * this.tileWidth;
     this.chunkHalfHeight = (this.chunkHeight / 2) * this.tileHeight;
 

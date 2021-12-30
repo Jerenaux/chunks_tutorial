@@ -56,11 +56,11 @@ const splitMap = (
       const map = JSON.parse(data);
       const mapWidth = map.width;
       const mapHeight = map.height;
-      const nbChunksHorizontal = Math.ceil(mapWidth / chunkWidth);
-      const nbChunksVertical = Math.ceil(mapHeight / chunkHeight);
-      const nbChunks = nbChunksHorizontal * nbChunksVertical;
+      const nbChunksX = Math.ceil(mapWidth / chunkWidth);
+      const nbChunksY = Math.ceil(mapHeight / chunkHeight);
+      const nbChunks = nbChunksX * nbChunksY;
       console.log(
-        `Splitting into ${nbChunks} chunks (${nbChunksHorizontal} x ${nbChunksVertical}) of size (${chunkWidth} x ${chunkHeight})`
+        `Splitting into ${nbChunks} chunks (${nbChunksX} x ${nbChunksY}) of size (${chunkWidth} x ${chunkHeight})`
       );
       console.log(`Writing to ${outputDirectory}`);
 
@@ -69,14 +69,19 @@ const splitMap = (
         tilesets: map.tilesets, // Up to you to decide if having the tilesets data in the master file is useful or not, adapt accordingly (in this case it's not)
         chunkWidth,
         chunkHeight,
-        nbChunksHorizontal,
-        nbChunksVertical,
+        nbChunksX,
+        nbChunksY,
         nbLayers: map.layers.length,
         mapHeight: map.height,
         mapWidth: map.width,
         tileWidth: map.tilewidth,
         tileHeight: map.tileheight,
       };
+
+      const tilesets = map.tilesets.map((tileset) => ({
+        ...tileset,
+        image: join("..", tileset.image),
+      }));
 
       writeFile(
         join(outputDirectory, "master.json"),
@@ -101,8 +106,8 @@ const splitMap = (
           })),
         };
         // Compute the coordinates of the top-left corner of the chunk in the initial map
-        const x = (i % nbChunksHorizontal) * chunkWidth;
-        const y = Math.floor(i / nbChunksHorizontal) * chunkHeight;
+        const x = (i % nbChunksX) * chunkWidth;
+        const y = Math.floor(i / nbChunksX) * chunkHeight;
         chunk.width = Math.min(chunkWidth, mapWidth - x);
         chunk.height = Math.min(chunkHeight, mapHeight - y);
         chunk.id = i;
@@ -128,10 +133,7 @@ const splitMap = (
         }
 
         // Update tileset paths
-        for (let k = 0; k < chunk.tilesets.length; k += 1) {
-          const tileset = chunk.tilesets[k];
-          tileset.image = join("..", tileset.image);
-        }
+        chunk.tilesets = tilesets;
 
         if (verbose) {
           console.log(

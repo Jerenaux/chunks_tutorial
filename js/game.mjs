@@ -90,8 +90,6 @@ const getSurroundingTiles = ({
 class Game extends Phaser.Scene {
   constructor() {
     super("Game");
-
-    this.prop = "testprop";
   }
 
   getTileFromXY(x, y) {
@@ -120,17 +118,24 @@ class Game extends Phaser.Scene {
     }
   }
 
-  // Determines the ID of the chunk on which the player charachter is based on its coordinates in the world
-  computeChunkID(x, y) {
+  getChunkXYFromPlayerXY(x, y) {
     const tile = this.getTileFromXY(x, y);
 
-    const chunkX = Math.floor(tile.x / this.chunkWidth);
-    const chunkY = Math.floor(tile.y / this.chunkHeight);
+    return [
+      Math.floor(tile.x / this.chunkWidth),
+      Math.floor(tile.y / this.chunkHeight),
+    ];
+  }
+
+  // Determines the ID of the chunk on which the player charachter is based on its coordinates in the world
+  computeChunkID(chunkX, chunkY) {
     return chunkY * this.nbChunksX + chunkX;
   }
 
   updateEnvironment() {
-    const chunkID = this.computeChunkID(this.player.x, this.player.y);
+    const chunkID = this.computeChunkID(
+      ...this.getChunkXYFromPlayerXY(this.player.x, this.player.y)
+    );
     // const chunks = this.listAdjacentChunks(chunkID); // List the id's of the chunks surrounding the one we are in
 
     const chunks = getSurroundingTiles({
@@ -142,7 +147,7 @@ class Game extends Phaser.Scene {
       includeMainObject: true,
       endX: this.nbChunksX - 1,
       endY: this.nbChunksY - 1,
-    }).map(({ x, y }) => x + y * this.nbChunksX);
+    }).map(({ x, y }) => this.computeChunkID(x, y));
 
     const newChunks = findDiffArrayElements(chunks, this.displayedChunks); // Lists the surrounding chunks that are not displayed yet (and have to be)
     const oldChunks = findDiffArrayElements(this.displayedChunks, chunks); // Lists the surrounding chunks that are still displayed (and shouldn't anymore)
@@ -174,30 +179,30 @@ class Game extends Phaser.Scene {
 
     // We need to compute the position of the chunk in the world
     const chunkID = parseInt(key.match(/\d+/)[0], 10); // Extracts the chunk number from file name
-    const chunkRow = Math.floor(chunkID / this.nbChunksX);
-    const chunkCol = chunkID % this.nbChunksX;
-    const isCenterChunk = (chunkID - chunkRow) % this.nbChunksX;
+    const chunkX = Math.floor(chunkID / this.nbChunksX);
+    const chunkY = chunkID % this.nbChunksX;
+    const isCenterChunk = (chunkID - chunkX) % this.nbChunksX;
 
     let offset;
 
     if (isCenterChunk === 0) {
       offset = {
         x: 0,
-        y: chunkRow * this.chunkHalfWidth,
+        y: chunkX * this.chunkHalfWidth,
       };
-    } else if (chunkID < this.nbChunksX * chunkRow + chunkRow) {
+    } else if (chunkID < this.nbChunksX * chunkX + chunkX) {
       offset = {
         x:
-          -(chunkRow * this.chunkHalfWidth) +
+          -(chunkX * this.chunkHalfWidth) +
           (chunkID % this.nbChunksX) * this.chunkHalfWidth,
         y:
-          chunkRow * this.chunkHalfHeight +
+          chunkX * this.chunkHalfHeight +
           (chunkID % this.nbChunksX) * this.chunkHalfHeight,
       };
     } else {
       offset = {
-        x: ((chunkCol - chunkRow) % this.nbChunksX) * this.chunkHalfWidth,
-        y: (chunkRow + chunkCol) * this.chunkHalfHeight,
+        x: ((chunkY - chunkX) % this.nbChunksX) * this.chunkHalfWidth,
+        y: (chunkX + chunkY) * this.chunkHalfHeight,
       };
     }
 

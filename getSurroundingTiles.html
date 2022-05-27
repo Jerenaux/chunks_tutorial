@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Get Surrounding Tiles function example</title>
+    <style>
+      #wrapper {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      #root {
+        width: 1024px;
+        background-color: green;
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .block {
+        width: 64px;
+        height: 32px;
+        border: 1px solid black;
+        box-sizing: border-box;
+        text-align: center;
+        padding-top: 6px;
+      }
+      .range {
+        background-color: red;
+      }
+      .element {
+        background-color: yellow;
+      }
+      label {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="root"></div>
+      <div id="settings">
+        <label><input id="input-tile-id" /> Tile ID</label>
+        <label><input id="input-size" /> Main object size</label>
+        <label
+          ><input id="input-size-to-increase" /> Size to increase main
+          object</label
+        >
+        <label
+          ><input id="input-include-main-object" type="checkbox" /> Include main
+          object?</label
+        >
+        <button id="btn-submit">Submit</button>
+      </div>
+    </div>
+  </body>
+  <script src="js/examples/getSurrroundingTiles.js" type="module"></script>
+</html>

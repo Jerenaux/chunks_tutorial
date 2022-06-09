@@ -36,24 +36,34 @@ const showRange = (range, mainObj) => {
 };
 
 const inputTileID = document.getElementById("input-tile-id");
-const inputSize = document.getElementById("input-size");
-const inputSizeToIncrease = document.getElementById("input-size-to-increase");
+const inputSizeX = document.getElementById("input-size-x");
+const inputSizeY = document.getElementById("input-size-y");
+const inputSizeToIncreaseX = document.getElementById(
+  "input-size-to-increase-x"
+);
+const inputSizeToIncreaseY = document.getElementById(
+  "input-size-to-increase-y"
+);
 const inputIncludeMainObj = document.getElementById(
   "input-include-main-object"
 );
 const submitBtn = document.getElementById("btn-submit");
 
-submitBtn.addEventListener("click", () => {
-  const ID = Number(inputTileID.value);
-  const size = inputSize.value ? Number(inputSize.value) : 1;
-  const sizeToIncrease = inputSizeToIncrease.value
-    ? Number(inputSizeToIncrease.value)
-    : 1;
+const getRange = (ID) => {
+  const size = {
+    x: inputSizeX.value ? Number(inputSizeX.value) : 1,
+    y: inputSizeY.value ? Number(inputSizeY.value) : 1,
+  };
+  const sizeToIncrease = {
+    x: inputSizeToIncreaseX.value ? Number(inputSizeToIncreaseX.value) : 1,
+    y: inputSizeToIncreaseY.value ? Number(inputSizeToIncreaseY.value) : 1,
+  };
 
   const mainObj = {
     positionTile: IDToXY({ ID, nbChunksX }),
-    size: { x: size, y: size },
-    sizeToIncrease: { x: sizeToIncrease, y: sizeToIncrease },
+    tileID: ID,
+    size,
+    sizeToIncrease,
     includeMainObject: inputIncludeMainObj.checked,
   };
 
@@ -62,6 +72,12 @@ submitBtn.addEventListener("click", () => {
     endX: nbChunksX - 1,
     endY: nbChunksX - 1,
   });
+
+  return { range, mainObj };
+};
+
+submitBtn.addEventListener("click", () => {
+  const { range, mainObj } = getRange(Number(inputTileID.value));
 
   showRange(range, mainObj);
 });

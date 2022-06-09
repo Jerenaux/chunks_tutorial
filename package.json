@@ -1,0 +1,27 @@
+{
+  "name": "splitter",
+  "version": "0.0.1",
+  "main": "splitmap.js",
+  "author": "Jerome Renaux",
+  "dependencies": {
+    "@babel/core": "^7.16.5",
+    "@babel/eslint-parser": "^7.16.5",
+    "eslint": "^8.5.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.22.2",
+    "eslint-plugin-prettier": "^4.0.0",
+    "optimist": "^0.6.1",
+    "prettier": "^2.2.1",
+    "rimraf": "^3.0.2"
+  },
+  "engines": {
+    "node": "^16"
+    },
+  "scripts": {
+    "start": "node splitter/splitmap.mjs",
+    "lint": "eslint '**/*.mjs'",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "yarn lint"
+  }
+}
